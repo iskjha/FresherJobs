@@ -1,0 +1,51 @@
+{
+  "name": "fresher-jobs-india",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Daily-refreshed, LLM-tagged board of fresher jobs and internships in India",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --max-warnings 0",
+    "test": "node --env-file-if-exists=.env --test",
+    "pipeline": "node --env-file-if-exists=.env pipeline/run.js",
+    "pipeline:dry": "node --env-file-if-exists=.env pipeline/run.js --dry-run",
+    "eval:sample": "node --env-file-if-exists=.env pipeline/eval/sample.js",
+    "eval:score": "node --env-file-if-exists=.env pipeline/eval/score.js",
+    "dev:api": "node --env-file-if-exists=.env server/index.js",
+    "dev:all": "node scripts/dev.mjs",
+    "start": "node --env-file-if-exists=.env server/index.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.14.0",
+    "axios": "^1.21.1",
+    "cors": "^2.8.6",
+    "express": "^5.3.0",
+    "lucide-react": "^1.73.0",
+    "mongodb": "^6.22.0",
+    "node-cron": "^4.6.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-redux": "^9.3.1",
+    "react-router-dom": "^6.30.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@vitejs/plugin-react": "^4.7.0",
+    "autoprefixer": "^10.6.2",
+    "esbuild": "^0.28.2",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.8",
+    "globals": "^17.14.0",
+    "postcss": "^8.5.33",
+    "tailwindcss": "^3.4.19",
+    "vite": "^5.4.21"
+  }
+}

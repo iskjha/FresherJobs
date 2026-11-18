@@ -1,0 +1,178 @@
+{
+  "evaluatedAt": "2026-11-16T06:17:15.879Z",
+  "sampleSize": 50,
+  "sampleHash": "819e1cd0995a1dae67fab94fc12f10dd37e9792315c2ebad0d312e5fe68b5220",
+  "model": "gpt-5.4",
+  "accuracy": {
+    "role": 92,
+    "city": 94,
+    "roleAndCity": 86,
+    "fresherFlag": 96
+  },
+  "costPer1000PostsUsd": 1.4901,
+  "errors": [
+    {
+      "title": "Product Development Executive",
+      "company": "Onest Limited",
+      "location": "Mumbai",
+      "url": "https://unstop.com/jobs/product-development-executive-onest-limited-1807154",
+      "llm": {
+        "role": "Hardware & Electronics",
+        "city": "Mumbai",
+        "isFresher": true,
+        "jobType": "Full-time"
+      },
+      "truth": {
+        "role": "Other",
+        "city": "Mumbai",
+        "isFresher": true
+      },
+      "notes": "Cosmetics R&D, not hardware/electronics"
+    },
+    {
+      "title": "Software Developer in Test (SDET) Internship",
+      "company": "Mercor",
+      "location": "Hyderabad; Remote (India)",
+      "url": "https://unstop.com/internships/software-developer-in-test-sdet-internship-mercor-1792918",
+      "llm": {
+        "role": "QA & Testing",
+        "city": "Hyderabad",
+        "isFresher": true,
+        "jobType": "Internship"
+      },
+      "truth": {
+        "role": "QA & Testing",
+        "city": "Remote",
+        "isFresher": true
+      },
+      "notes": "Unstop job type is WFH; city listed is secondary"
+    },
+    {
+      "title": "ASIC Validation Engineer",
+      "company": "Qualcomm",
+      "location": "Bangalore",
+      "url": "https://unstop.com/jobs/asic-validation-engineer-qualcomm-1805897",
+      "llm": {
+        "role": "Hardware & Electronics",
+        "city": "Bengaluru",
+        "isFresher": true,
+        "jobType": "Full-time"
+      },
+      "truth": {
+        "role": "Hardware & Electronics",
+        "city": "Bengaluru",
+        "isFresher": false
+      },
+      "notes": "No years stated but requires leading post-silicon bring-up and in-depth HW knowledge (ambiguous)"
+    },
+    {
+      "title": "Business Development Internship",
+      "company": "StackCart",
+      "location": "Delhi; Remote (India)",
+      "url": "https://unstop.com/internships/business-development-internship-stackcart-1798591",
+      "llm": {
+        "role": "Sales & Business Development",
+        "city": "New Delhi",
+        "isFresher": true,
+        "jobType": "Internship"
+      },
+      "truth": {
+        "role": "Sales & Business Development",
+        "city": "Remote",
+        "isFresher": true
+      },
+      "notes": "Unstop job type is WFH"
+    },
+    {
+      "title": "Training Executive L2",
+      "company": "Wipro Limited",
+      "location": "Chennai",
+      "url": "https://unstop.com/jobs/training-executive-l2-wipro-limited-1805058",
+      "llm": {
+        "role": "Other",
+        "city": "Chennai",
+        "isFresher": false,
+        "jobType": "Full-time"
+      },
+      "truth": {
+        "role": "HR & Recruiting",
+        "city": "Chennai",
+        "isFresher": false
+      },
+      "notes": "New-hire training / L&D sits under HR"
+    },
+    {
+      "title": "Analyst, Tax - GIR Compliance",
+      "company": "PayPal India Private Limited",
+      "location": "Bangalore",
+      "url": "https://unstop.com/jobs/analyst-tax-gir-compliance-paypal-india-private-limited-1806320",
+      "llm": {
+        "role": "Legal & Compliance",
+        "city": "Bengaluru",
+        "isFresher": true,
+        "jobType": "Full-time"
+      },
+      "truth": {
+        "role": "Finance & Accounting",
+        "city": "Bengaluru",
+        "isFresher": true
+      },
+      "notes": "Tax filings/provisions are finance, not legal"
+    },
+    {
+      "title": "Sales Executive Internship",
+      "company": "Weskill Edutech Private Limited",
+      "location": "Gurgaon; Remote (India)",
+      "url": "https://unstop.com/internships/sales-executive-internship-weskill-edutech-private-limited-1804695",
+      "llm": {
+        "role": "Sales & Business Development",
+        "city": "Gurugram",
+        "isFresher": true,
+        "jobType": "Internship"
+      },
+      "truth": {
+        "role": "Sales & Business Development",
+        "city": "Remote",
+        "isFresher": true
+      },
+      "notes": "Unstop job type is WFH"
+    },
+    {
+      "title": "Odia Speaking Map Evaluator",
+      "company": "Peroptyx",
+      "location": "Remote (India)",
+      "url": "https://unstop.com/jobs/odia-speaking-map-evaluator-peroptyx-1782450",
+      "llm": {
+        "role": "Data Science & Analytics",
+        "city": "Remote",
+        "isFresher": true,
+        "jobType": "Full-time"
+      },
+      "truth": {
+        "role": "Other",
+        "city": "Remote",
+        "isFresher": true
+      },
+      "notes": "Map/search-quality evaluator is rating work, not data science"
+    },
+    {
+      "title": "AI Associate â€“ MD Office (Special AI Projects)",
+      "company": "Sun Pharmaceutical Industries Ltd.",
+      "location": "Mumbai",
+      "url": "https://unstop.com/jobs/ai-associate-md-office-special-ai-projects-sun-pharmaceutical-industries-ltd-1736237",
+      "llm": {
+        "role": "AI / Machine Learning",
+        "city": "Mumbai",
+        "isFresher": false,
+        "jobType": "Full-time"
+      },
+      "truth": {
+        "role": "AI / Machine Learning",
+        "city": "Mumbai",
+        "isFresher": true
+      },
+      "notes": "Associate title, no minimum years stated; prefers prior project experience (ambiguous)"
+    }
+  ],
+  "promptVersion": "v1"
+}
