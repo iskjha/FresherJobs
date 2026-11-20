@@ -2,6 +2,7 @@
 
 A live, searchable board of **fresher jobs and internships in India**. A daily pipeline collects ~10,000 posts from public job-board APIs, keeps the India entry-level ones, removes duplicates, tags each post with an LLM (role, city, fresher-eligible) and stores everything in **MongoDB**. An **Express API** serves filtered, cursor-paginated results to a React kanban board.
 
+- **Repository:** [iskjha/FresherJobs](https://github.com/iskjha/FresherJobs)
 - **Stack:** Node 22 · MongoDB · Express 5 · node-cron · OpenAI-compatible LLM (gpt-5.4 via Azure OpenAI) · React 18 + Vite 5 + Redux Toolkit + Tailwind
 
 ## Recorded results (2026-11-16)
@@ -141,14 +142,19 @@ Sampling refuses to overwrite an existing file or return fewer posts than reques
 
 ## Deploying
 
-The app is one Node process (API + static frontend + daily cron), so any Node host works (Render, Railway, Fly.io, a VM):
+The app runs as one Node process serving the API and built frontend. For a Render web service and MongoDB Atlas:
 
-1. Create a MongoDB database (e.g. Atlas free tier) and set `MONGODB_URI`.
-2. Set `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_PROFILE_MODEL`, and optionally `ADMIN_TOKEN`.
-3. Build with `npm ci && npm run build`, start with `npm start`.
-4. Run `npm run pipeline` once (or `POST /api/admin/refresh`) to fill the database; after that the built-in cron refreshes it daily at 06:30 IST.
+1. Create an Atlas cluster and database user. In Atlas **Network Access**, allow the [Render outbound IP ranges](https://render.com/docs/outbound-ip-addresses) for the service's region, as well as any other trusted clients that need access.
+2. Connect this repository to a Render **Web Service**. Select the free instance if suitable, set `NODE_VERSION` to `22`, use `npm ci && npm run build` as the build command, and `npm start` as the start command.
+3. In Render's environment settings, set `MONGODB_URI` to the Atlas connection string with the intended database name in its path. Set `ENABLE_CRON=false` if using free hosting or an external scheduler. Do not commit credentials or paste them into logs or screenshots.
+4. Deploy and check the site and `/api/meta`. Existing job documents can be served without LLM credentials; a new database needs jobs imported or the pipeline run before the board has results.
+5. To collect new jobs, configure `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and `OPENAI_PROFILE_MODEL` wherever the pipeline runs. Run `npm run pipeline` once or use a scheduler. LLM calls can incur charges, including for new or changed posts.
 
-If the host sleeps idle processes, trigger `POST /api/admin/refresh` from an external scheduler (e.g. a GitHub Actions cron with `curl`) instead of relying on the in-process cron.
+The database name matters: a URI without a database path uses `test`. If importing only `jobs`, its LLM tag cache comes with it, but `runs` and `evaluations` history does not. Copy those collections separately if their historical metadata is needed.
+
+The built-in cron runs at 06:30 IST by default only while the server is running. Render's free service can sleep, so it is not a reliable daily scheduler. Use an external scheduler to run `npm run pipeline` with the same database and LLM settings; disable the server cron and avoid overlapping runs. Alternatively, configure `ADMIN_TOKEN` and trigger `POST /api/admin/refresh` with the `x-admin-token` header, but a successful `202` only means the background run started, not that it completed; monitor `/api/admin/status` and server logs. An idle service may sleep again before a long run finishes. No external scheduler is included in this repository.
+
+Free hosting and Atlas tiers have usage limits; LLM usage is not necessarily free. Check provider terms and current limits before deploying.
 
 CI (`.github/workflows/ci.yml`) runs lint, the test suite against a MongoDB service container, and the production build.
 
