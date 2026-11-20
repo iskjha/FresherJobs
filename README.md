@@ -175,13 +175,13 @@ The repository includes [.github/workflows/daily-pipeline.yml](.github/workflows
 
 Collection fails closed when `PIPELINE_SOURCE_ALLOWLIST` is empty, contains an unknown board, or contains duplicates. Adding a board to the variable is an operator decision, not proof of permission: first record its applicable access, storage, display/redistribution, attribution, and rate-limit review below. The workflow's concurrency group prevents its scheduled and manually dispatched runs from overlapping with each other. It does not coordinate with direct CLI runs or `/api/admin/refresh`; avoid starting those while an Actions run is active. Set `ENABLE_CRON=false` on the web service to avoid a second daily scheduler.
 
-GitHub Actions shows each run's status, timestamp, and logs; pipeline failures exit non-zero. The workflow configuration is present, but this repository snapshot does not verify that production secrets/variables have been configured or that a scheduled run has succeeded. `/api/meta` includes the latest stored run, board-level outcomes, live active internship/job totals, and summarized source health. A successful `202` from `POST /api/admin/refresh` only means the background run started; monitor `/api/admin/status` and server logs for completion.
+GitHub Actions shows each run's status, timestamp, and logs; pipeline failures exit non-zero. A [manually triggered production refresh](https://github.com/iskjha/FresherJobs/actions/runs/44737252397) succeeded on **2026-11-20 at 18:14 IST** (second attempt). The production `/api/meta` recorded the run at 18:14:06 IST, with 756 published fresher posts, 41 duplicates removed, and 52/52 source boards successful. This verifies a manual refresh, not an automatically scheduled execution; a successful scheduled run still needs verification. `/api/meta` includes the latest stored run, board-level outcomes, live active internship/job totals, and summarized source health. A successful `202` from `POST /api/admin/refresh` only means the background run started; monitor `/api/admin/status` and server logs for completion.
 
 The `/api/meta` live totals can be used for a dated production snapshot: `live.total`, `live.internships`, `live.jobs`, and `live.newLast24h`; the latest run includes counts, duplicate removals, and per-board `sources`, with `sourceHealth` giving success/failure totals. No current production response or run ID is recorded here, so the historical 2026-11-16 figures above should not be read as current values.
 
 Free hosting and Atlas tiers have usage limits; LLM usage is not necessarily free. Check provider terms and current limits before deploying.
 
-CI (`.github/workflows/ci.yml`) runs lint, the test suite against a MongoDB service container, and the production build.
+CI (`.github/workflows/ci.yml`) runs lint, the test suite against a MongoDB service container, and the production build. Its [2026-11-20 run](https://github.com/iskjha/FresherJobs/actions/runs/44736672346) passed; CI success does not verify the production refresh.
 
 ## What broke and how it was fixed
 
