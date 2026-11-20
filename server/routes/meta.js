@@ -12,13 +12,24 @@ export function metaRouter(db) {
 
   // Latest pipeline run + live counts from the jobs collection.
   router.get('/meta', async (_req, res) => {
-    const [run, total, newLast24h] = await Promise.all([
+    const [run, total, internships, jobsCount, newLast24h] = await Promise.all([
       db.collection('runs').findOne({}, { sort: { generatedAt: -1 }, projection: { _id: 0 } }),
       jobs.countDocuments(LIVE),
+      jobs.countDocuments({ ...LIVE, jobType: 'Internship' }),
+      jobs.countDocuments({ ...LIVE, jobType: { $ne: 'Internship' } }),
       jobs.countDocuments({ ...LIVE, postedAt: { $gte: new Date(Date.now() - DAY_MS) } }),
     ]);
     if (!run) return res.status(404).json({ error: 'No pipeline run yet. Run `npm run pipeline` first.' });
-    res.json({ ...run, live: { total, newLast24h } });
+    const sources = Array.isArray(run.sources) ? run.sources : [];
+    res.json({
+      ...run,
+      sourceHealth: {
+        total: sources.length,
+        succeeded: sources.filter((source) => source.ok === true).length,
+        failed: sources.filter((source) => source.ok === false).length,
+      },
+      live: { total, internships, jobs: jobsCount, newLast24h },
+    });
   });
 
   // Unfiltered option counts for tabs, filter dropdowns and Insights.

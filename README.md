@@ -49,8 +49,8 @@ This is estimated **LLM-only** spend at the configured token prices, not an invo
                                ▼            │ runs        (one per run)   │
   pipeline/run.js  ── collect → India → rules → dedupe → LLM tag ──upsert──▶│ evaluations (accuracy)      │
        ▲                                    └──────────────┬──────────────┘
-       │ node-cron 06:30 IST (server/scheduler.js)         │ indexed queries,
-       │ or `npm run pipeline` / POST /api/admin/refresh   │ keyset cursors
+       │ GitHub Actions daily (01:00 UTC)                  │ indexed queries,
+       │ node-cron / manual CLI or admin refresh           │ keyset cursors
                                                            ▼
                                             Express API  (server/)
                                                            │  /api/*
@@ -126,6 +126,14 @@ npm run dev:all             # API on :4000 + Vite on :3007 (proxies /api) → ht
 
 Pages: `/jobs` (filters live in the query string, e.g. `/jobs?cities=Pune&type=Internship`), `/insights`, `/accuracy`, `/how-it-works`.
 
+To run the production build locally instead of the Vite development server:
+
+```bash
+npm run build
+npm start
+# Open http://localhost:4000/jobs
+```
+
 `dev:all` (`scripts/dev.mjs`) reloads the API only when a server file's content actually changes (on Windows, plain `node --watch` also restarts when files are merely read), restarts it automatically if it crashes, and does nothing if the servers are already running. The frontend retries API calls for a few seconds during a restart, so refreshing mid-restart doesn't show an error.
 
 Other scripts: `npm run pipeline:dry` (fetch/filter/dedupe only, no LLM or DB writes), `npm test` (unit + MongoDB integration tests in a throwaway database), `npm run lint`, `npm run build`, `npm start` (production: API + built frontend on one port).
@@ -139,7 +147,7 @@ npm run eval:sample -- 50 42 pipeline/eval/labels.next.json
 npm run eval:score          # scores against current tags → `evaluations` collection
 ```
 
-Sampling refuses to overwrite an existing file or return fewer posts than requested. Scoring requires at least 50 unique, fully labeled posts with current MongoDB predictions; missing jobs cannot silently reuse old predictions saved in the sample. The sample IDs and truth labels are fingerprinted, and the archived baseline is shown only when that fingerprint matches. Keep the existing sample unchanged for a like-for-like v1/v2 comparison. A new sample requires its own baseline.
+Sampling refuses to overwrite an existing file or return fewer posts than requested. Scoring requires at least 50 unique, fully labeled posts with current MongoDB predictions; missing jobs cannot silently reuse old predictions saved in the sample. The report stores exact correct counts alongside percentages and sample size, so each score can be reported as `correct/sampleSize`. The sample IDs and truth labels are fingerprinted, and the archived baseline is shown only when that fingerprint matches. Keep the existing sample unchanged for a like-for-like v1/v2 comparison. A new sample requires its own baseline. This code does not perform human review or certify that labels were independently reviewed; the current saved sample remains a historical evaluation.
 
 ## Deploying
 
@@ -147,13 +155,29 @@ The app runs as one Node process serving the API and built frontend. For a Rende
 
 1. Create an Atlas cluster and database user. In Atlas **Network Access**, allow the [Render outbound IP ranges](https://render.com/docs/outbound-ip-addresses) for the service's region, as well as any other trusted clients that need access.
 2. Connect this repository to a Render **Web Service**. Select the free instance if suitable, set `NODE_VERSION` to `22`, use `npm ci && npm run build` as the build command, and `npm start` as the start command.
-3. In Render's environment settings, set `MONGODB_URI` to the Atlas connection string with the intended database name in its path. Set `ENABLE_CRON=false` when using an external scheduler; `ENABLE_CRON=true` runs the in-process cron only while the service is awake. Do not commit credentials or paste them into logs or screenshots.
+3. In Render's environment settings, set `MONGODB_URI` to the Atlas connection string with the intended database name in its path. Set `ENABLE_CRON=false` when using the external scheduler; `ENABLE_CRON=true` runs the in-process cron only while the service is awake. Do not commit credentials or paste them into logs or screenshots.
 4. Deploy and check the site and `/api/meta`. Existing job documents can be served without LLM credentials; a new database needs jobs imported or the pipeline run before the board has results.
 5. To collect new jobs, configure `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and `OPENAI_PROFILE_MODEL` wherever the pipeline runs. Run `npm run pipeline` once or use a scheduler. LLM calls can incur charges, including for new or changed posts.
 
 The database name matters: a URI without a database path uses `test`. If importing only `jobs`, its LLM tag cache comes with it, but `runs` and `evaluations` history does not. Copy those collections separately if their historical metadata is needed.
 
-The built-in cron runs at 06:30 IST by default only while the server is running. Render's free service can sleep, so it is not a reliable daily scheduler. Use an external scheduler to run `npm run pipeline` with the same database and LLM settings; disable the server cron and avoid overlapping runs. Alternatively, configure `ADMIN_TOKEN` and trigger `POST /api/admin/refresh` with the `x-admin-token` header, but a successful `202` only means the background run started, not that it completed; monitor `/api/admin/status` and server logs. An idle service may sleep again before a long run finishes. No external scheduler is included in this repository.
+### Daily refresh
+
+The repository includes [.github/workflows/daily-pipeline.yml](.github/workflows/daily-pipeline.yml), scheduled for **01:00 UTC (06:30 Asia/Kolkata)** and manually triggerable with `workflow_dispatch`. It runs `npm run pipeline`; configure these GitHub Actions values before expecting a successful run:
+
+| GitHub setting | Required | Purpose |
+| --- | --- | --- |
+| Secret `MONGODB_URI` | Yes | Target database connection |
+| Secret `OPENAI_API_KEY` | Yes | LLM tagging |
+| Variable `PIPELINE_SOURCE_ALLOWLIST` | Yes | Comma-separated, individually reviewed `source/board` pairs |
+| Variable `OPENAI_BASE_URL` | No | Defaults to the OpenAI API URL |
+| Variable `OPENAI_PROFILE_MODEL` | No | Uses the pipeline default if omitted |
+
+Collection fails closed when `PIPELINE_SOURCE_ALLOWLIST` is empty, contains an unknown board, or contains duplicates. Adding a board to the variable is an operator decision, not proof of permission: first record its applicable access, storage, display/redistribution, attribution, and rate-limit review below. The workflow's concurrency group prevents its scheduled and manually dispatched runs from overlapping with each other. It does not coordinate with direct CLI runs or `/api/admin/refresh`; avoid starting those while an Actions run is active. Set `ENABLE_CRON=false` on the web service to avoid a second daily scheduler.
+
+GitHub Actions shows each run's status, timestamp, and logs; pipeline failures exit non-zero. The workflow configuration is present, but this repository snapshot does not verify that production secrets/variables have been configured or that a scheduled run has succeeded. `/api/meta` includes the latest stored run, board-level outcomes, live active internship/job totals, and summarized source health. A successful `202` from `POST /api/admin/refresh` only means the background run started; monitor `/api/admin/status` and server logs for completion.
+
+The `/api/meta` live totals can be used for a dated production snapshot: `live.total`, `live.internships`, `live.jobs`, and `live.newLast24h`; the latest run includes counts, duplicate removals, and per-board `sources`, with `sourceHealth` giving success/failure totals. No current production response or run ID is recorded here, so the historical 2026-11-16 figures above should not be read as current values.
 
 Free hosting and Atlas tiers have usage limits; LLM usage is not necessarily free. Check provider terms and current limits before deploying.
 
@@ -177,12 +201,23 @@ CI (`.github/workflows/ci.yml`) runs lint, the test suite against a MongoDB serv
 
 ## Video walkthrough checklist
 
-Record a walkthrough of the deployed app: search and filter real posts, open an original listing, then show `/api/meta` and explain the daily schedule. Trace collection, India/fresher filtering, deduplication, LLM tagging/cache, MongoDB and the Express/React UI using the architecture above. Explain the failures and fixes above, show the 50 reviewed labels and scoring command, and state both the pre-tuning and in-sample accuracy plus the LLM-only cost formula. Do not expose `.env`, API keys or database credentials. This checklist is not a recorded video.
+Record a walkthrough of the deployed app: search and filter real posts, open an original listing, then show `/api/meta` and explain the daily schedule. Trace collection, India/fresher filtering, deduplication, LLM tagging/cache, MongoDB and the Express/React UI using the architecture above. Explain the failures and fixes above, show the 50 reviewed labels and scoring command, and state both the pre-tuning and in-sample accuracy plus the LLM-only cost formula. Do not expose `.env`, API keys or database credentials. This checklist is not a recorded video; no video URL or accessible recording is available in this repository.
 
 ## Respecting each site's terms
 
 - The collector uses unauthenticated ATS job-board APIs (Lever, Greenhouse, Ashby, SmartRecruiters) and Unstop's public API. **Public accessibility and a robots.txt allowance are not permission or a license to collect, store, or redistribute posts.** This repository does not establish that each provider has authorized this use.
-- Before enabling collection, verify and record each provider's current API terms, content license, robots rules, attribution requirements and rate limits, or obtain written permission. Remove sources from `pipeline/sources.config.js` if those requirements cannot be met. This audit has not certified provider permission.
+- **Permission audit status: pending; no configured board is allowlisted by default.** The source permission review has not certified any board for collection or redistribution. Collection requires an explicit board-level `PIPELINE_SOURCE_ALLOWLIST` configured only after the relevant review.
+- Configured source inventory and present decision:
+
+| Provider | Configured boards | Count | Access, storage and display/redistribution decision |
+| --- | --- | ---: | --- |
+| Unstop | `internships`, `jobs` | 2 | Pending; disabled unless explicitly allowlisted |
+| Lever | 10 company boards in `pipeline/sources.config.js` | 10 | Pending; disabled unless explicitly allowlisted |
+| Greenhouse | 24 company boards in `pipeline/sources.config.js` | 24 | Pending; disabled unless explicitly allowlisted |
+| Ashby | 6 company boards in `pipeline/sources.config.js` | 6 | Pending; disabled unless explicitly allowlisted |
+| SmartRecruiters | 10 company boards in `pipeline/sources.config.js` | 10 | Pending; disabled unless explicitly allowlisted |
+
+- Before adding any `source/board` pair to the allowlist, record the board's applicable API access terms, storage rights, display/redistribution rights, attribution requirements, rate limits, evidence URL or written permission, decision, and review date. Provider-level API documentation alone may not establish the employer's permission to republish that board's posts. Remove or leave unallowlisted any board without an adequate permission basis.
 - Source review (2026-11-20): [Lever](https://github.com/lever/postings-api) describes public postings and third-party scraping, while [Ashby](https://developers.ashbyhq.com/docs/public-job-posting-api) and [SmartRecruiters](https://developers.smartrecruiters.com/docs/posting-api) describe APIs for an organization's own careers pages. [Greenhouse](https://developers.greenhouse.io/) lists a job-board API. These descriptions do not establish third-party redistribution rights for the configured boards.
 - [Unstop's robots.txt](https://unstop.com/robots.txt) allows `/api/public/*` for general crawlers, but that is not a content license. An [Unstop terms page](https://perspect.ai/legal/terms-of-use/) discusses intellectual-property rights; it does not establish permission for this project's collection and redistribution. Confirm the applicable terms and obtain permission where necessary.
 - No HTML scraping, login bypass, or collection from LinkedIn, Naukri, Indeed or Internshala.

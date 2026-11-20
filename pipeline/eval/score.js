@@ -25,6 +25,12 @@ export function scoreLabels(items, docs) {
   });
   const pct = (n) => Number(((n / labeled.length) * 100).toFixed(1));
   const ok = (pred) => labeled.filter(pred).length;
+  const correctCounts = {
+    role: ok((x) => x.llm.role === x.truth.role),
+    city: ok((x) => x.llm.city === x.truth.city),
+    roleAndCity: ok((x) => x.llm.role === x.truth.role && x.llm.city === x.truth.city),
+    fresherFlag: ok((x) => x.llm.isFresher === x.truth.isFresher),
+  };
   return {
     sampleSize: labeled.length,
     sampleIds: labeled.map((x) => x.id),
@@ -32,11 +38,12 @@ export function scoreLabels(items, docs) {
       .update(JSON.stringify(labeled.map((x) => [x.id, x.truth.role, x.truth.city, x.truth.isFresher])
         .sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)))
       .digest('hex'),
+    correctCounts,
     accuracy: {
-      role: pct(ok((x) => x.llm.role === x.truth.role)),
-      city: pct(ok((x) => x.llm.city === x.truth.city)),
-      roleAndCity: pct(ok((x) => x.llm.role === x.truth.role && x.llm.city === x.truth.city)),
-      fresherFlag: pct(ok((x) => x.llm.isFresher === x.truth.isFresher)),
+      role: pct(correctCounts.role),
+      city: pct(correctCounts.city),
+      roleAndCity: pct(correctCounts.roleAndCity),
+      fresherFlag: pct(correctCounts.fresherFlag),
     },
     errors: labeled
       .filter((x) => x.llm.role !== x.truth.role || x.llm.city !== x.truth.city || x.llm.isFresher !== x.truth.isFresher)

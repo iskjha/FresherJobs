@@ -20,6 +20,7 @@ test('scores all 50 current predictions, not the saved sample predictions', () =
   const result = scoreLabels(items, docs);
   assert.equal(result.sampleSize, 50);
   assert.deepEqual(result.accuracy, { role: 98, city: 98, roleAndCity: 96, fresherFlag: 98 });
+  assert.deepEqual(result.correctCounts, { role: 49, city: 49, roleAndCity: 48, fresherFlag: 49 });
   assert.equal(result.errors.length, 2);
   assert.equal(items[0].llm.city, 'Remote');
   const sameSample = scoreLabels([...items].reverse(), docs);

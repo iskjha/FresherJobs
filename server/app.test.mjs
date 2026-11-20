@@ -47,7 +47,11 @@ before(async () => {
   }));
   docs.push({ ...docs[0], _id: 't:closed', active: false }, { ...docs[0], _id: 't:senior', isFresher: false });
   await db.collection('jobs').insertMany(docs);
-  await db.collection('runs').insertOne({ generatedAt: new Date(), counts: { published: 40 }, sources: [] });
+  await db.collection('runs').insertOne({
+    generatedAt: new Date(),
+    counts: { published: 40 },
+    sources: [{ source: 'unstop', board: 'jobs', ok: true }, { source: 'lever', board: 'cred', ok: false }],
+  });
 
   server = createApp({ db }).listen(0);
   api = `http://127.0.0.1:${server.address().port}/api`;
@@ -117,6 +121,15 @@ test('invalid cursor is a 400, not a 500', async (t) => {
   if (skip) return t.skip(skip);
   const { status } = await post('/jobs/search', { filters: {}, before: 'not-a-cursor' });
   assert.equal(status, 400);
+});
+
+test('meta reports active job-type totals and the latest run source health', async (t) => {
+  if (skip) return t.skip(skip);
+  const res = await fetch(api + '/meta');
+  assert.equal(res.status, 200);
+  const meta = await res.json();
+  assert.deepEqual(meta.live, { total: 40, internships: 26, jobs: 14, newLast24h: 0 });
+  assert.deepEqual(meta.sourceHealth, { total: 2, succeeded: 1, failed: 1 });
 });
 
 test('historical evaluation reports missing current predictions without changing recorded scores', async (t) => {

@@ -4,6 +4,7 @@ import { dedupe } from './dedupe.js';
 import { isFresherCandidate, isIndiaPost, minYearsRequired } from './filters.js';
 import { contentHash, costUsd, tagPosts, validateTag } from './tagger.js';
 import { publishMinimum } from '../run.js';
+import { getEnabledSources } from '../sources.config.js';
 import { fetchAshby } from '../sources/ashby.js';
 import { fetchGreenhouse } from '../sources/greenhouse.js';
 import { fetchUnstop } from '../sources/unstop.js';
@@ -56,6 +57,16 @@ test('publication minimum cannot silently fall below the required 200 posts', ()
   for (const value of [100, 0, '', 'not-a-number', 200.5]) {
     assert.throws(() => publishMinimum(value), /at least 200/);
   }
+});
+
+test('collection requires an explicit allowlist of configured source boards', () => {
+  assert.throws(() => getEnabledSources(''), /must list reviewed/);
+  assert.deepEqual(getEnabledSources('unstop/internships, lever/cred'), [
+    { source: 'unstop', board: 'internships' },
+    { source: 'lever', board: 'cred' },
+  ]);
+  assert.throws(() => getEnabledSources('unstop/unknown'), /Unknown source\/board/);
+  assert.throws(() => getEnabledSources('unstop/jobs,unstop/jobs'), /duplicate/);
 });
 
 const llm = { model: 'test-model', baseUrl: 'https://llm.invalid', apiKey: 'test-only' };

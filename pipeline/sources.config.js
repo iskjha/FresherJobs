@@ -21,6 +21,31 @@ export const SOURCES = {
   ],
 };
 
+export function getEnabledSources(value = process.env.PIPELINE_SOURCE_ALLOWLIST) {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new Error('PIPELINE_SOURCE_ALLOWLIST must list reviewed source/board pairs before collection is enabled.');
+  }
+
+  const configured = new Set(
+    Object.entries(SOURCES).flatMap(([source, boards]) => boards.map((board) => `${source}/${board}`))
+  );
+  const entries = value.split(',').map((entry) => entry.trim());
+  if (entries.some((entry) => !entry)) {
+    throw new Error('PIPELINE_SOURCE_ALLOWLIST contains an empty entry.');
+  }
+  if (new Set(entries).size !== entries.length) {
+    throw new Error('PIPELINE_SOURCE_ALLOWLIST contains duplicate entries.');
+  }
+
+  return entries.map((entry) => {
+    if (!configured.has(entry)) {
+      throw new Error(`Unknown source/board in PIPELINE_SOURCE_ALLOWLIST: ${entry}`);
+    }
+    const [source, board] = entry.split('/');
+    return { source, board };
+  });
+}
+
 // Display names for board slugs whose API does not return a company name.
 export const COMPANY_NAMES = {
   cred: 'CRED', meesho: 'Meesho', zeta: 'Zeta', fampay: 'FamPay', nium: 'Nium',

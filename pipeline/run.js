@@ -1,5 +1,5 @@
 import { pathToFileURL } from 'node:url';
-import { SOURCES } from './sources.config.js';
+import { getEnabledSources } from './sources.config.js';
 import { fetchLever } from './sources/lever.js';
 import { fetchGreenhouse } from './sources/greenhouse.js';
 import { fetchAshby } from './sources/ashby.js';
@@ -33,8 +33,7 @@ export function publishMinimum(value = process.env.MIN_PUBLISH_JOBS ?? 200) {
   return minimum;
 }
 
-async function collect(log) {
-  const jobs = Object.entries(SOURCES).flatMap(([source, boards]) => boards.map((board) => ({ source, board })));
+async function collect(log, jobs) {
   const sourceStats = [];
   const results = await mapPool(jobs, 6, async ({ source, board }) => {
     try {
@@ -58,6 +57,7 @@ async function collect(log) {
 export async function runPipeline({ db, log = console.log, dryRun = false }) {
   const started = new Date();
   const minJobs = publishMinimum();
+  const enabledSources = getEnabledSources();
   const llm = {
     apiKey: process.env.OPENAI_API_KEY,
     baseUrl: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
@@ -65,8 +65,8 @@ export async function runPipeline({ db, log = console.log, dryRun = false }) {
   };
   if (!llm.apiKey && !dryRun) throw new Error('OPENAI_API_KEY is not set (see .env.example).');
 
-  log('1) Collecting from public job-board APIs...');
-  const { posts: all, sourceStats } = await collect(log);
+  log(`1) Collecting from ${enabledSources.length} allowlisted source board(s)...`);
+  const { posts: all, sourceStats } = await collect(log, enabledSources);
   log(`   ${all.length} postings fetched from ${sourceStats.filter((s) => s.ok).length} boards`);
 
   const india = all.filter(isIndiaPost);
