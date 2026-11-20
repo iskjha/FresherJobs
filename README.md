@@ -1,7 +1,8 @@
 # FresherJobs India
 
-A live, searchable board of **fresher jobs and internships in India**. A daily pipeline collects ~10,000 posts from public job-board APIs, keeps the India entry-level ones, removes duplicates, tags each post with an LLM (role, city, fresher-eligible) and stores everything in **MongoDB**. An **Express API** serves filtered, cursor-paginated results to a React kanban board.
+A live, searchable board of **fresher jobs and internships in India**. A pipeline designed to run daily collects posts from public job-board APIs, keeps the India entry-level ones, removes duplicates, tags each post with an LLM (role, city, fresher-eligible) and stores everything in **MongoDB**. An **Express API** serves filtered, cursor-paginated results to a React kanban board.
 
+- **Live site:** [fresherjobs.onrender.com](https://fresherjobs.onrender.com/jobs)
 - **Repository:** [iskjha/FresherJobs](https://github.com/iskjha/FresherJobs)
 - **Stack:** Node 22 · MongoDB · Express 5 · node-cron · OpenAI-compatible LLM (gpt-5.4 via Azure OpenAI) · React 18 + Vite 5 + Redux Toolkit + Tailwind
 
@@ -27,7 +28,7 @@ These are a recorded run snapshot, not hardcoded acceptance checks. The live `/a
 | Role **and** city | **86%** | 96% |
 | Fresher flag | **96%** | 98% |
 
-The v2 fixes were designed after looking at these same 50 errors, so v2 is optimistic, not a held-out test. The v1 column is the recorded pre-tuning baseline, not proof of unbiased population accuracy. v2 also introduced 2 new role mistakes (SAP consultant → Finance, fraud ops → Other) while fixing 4 others. Labels and notes: [`pipeline/eval/labels.json`](pipeline/eval/labels.json). Results are stored in the `evaluations` collection and shown on the **Accuracy & cost** page. Label completeness does not itself prove a human reviewed the original postings; the submitter must verify and attest to that review.
+The v2 fixes were designed after looking at these same 50 errors, so v2 is optimistic, not a held-out test. The v1 column is the recorded pre-tuning baseline, not proof of unbiased population accuracy. v2 also introduced 2 new role mistakes (SAP consultant → Finance, fraud ops → Other) while fixing 4 others. Labels and notes: [`pipeline/eval/labels.json`](pipeline/eval/labels.json). Results are stored in the `evaluations` collection and shown on the **Accuracy & cost** page. The project owner reports personally reviewing the 50 original posts; label completeness alone does not establish that review.
 
 **Re-score audit (2026-11-17):** only **49/50** sample IDs remain in MongoDB. `unstop:1808717` (Finance & Tax Internship) is missing. The original 50-post scores are retained as **historical results**, not a new verification of current predictions. A full current re-score now fails explicitly instead of substituting that post's saved prediction. `/api/evaluation` reports current sample coverage and the Accuracy page shows the gap. A replacement post requires a real human review and a new evaluation; no labels or predictions have been invented.
 
@@ -146,7 +147,7 @@ The app runs as one Node process serving the API and built frontend. For a Rende
 
 1. Create an Atlas cluster and database user. In Atlas **Network Access**, allow the [Render outbound IP ranges](https://render.com/docs/outbound-ip-addresses) for the service's region, as well as any other trusted clients that need access.
 2. Connect this repository to a Render **Web Service**. Select the free instance if suitable, set `NODE_VERSION` to `22`, use `npm ci && npm run build` as the build command, and `npm start` as the start command.
-3. In Render's environment settings, set `MONGODB_URI` to the Atlas connection string with the intended database name in its path. Set `ENABLE_CRON=false` if using free hosting or an external scheduler. Do not commit credentials or paste them into logs or screenshots.
+3. In Render's environment settings, set `MONGODB_URI` to the Atlas connection string with the intended database name in its path. Set `ENABLE_CRON=false` when using an external scheduler; `ENABLE_CRON=true` runs the in-process cron only while the service is awake. Do not commit credentials or paste them into logs or screenshots.
 4. Deploy and check the site and `/api/meta`. Existing job documents can be served without LLM credentials; a new database needs jobs imported or the pipeline run before the board has results.
 5. To collect new jobs, configure `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and `OPENAI_PROFILE_MODEL` wherever the pipeline runs. Run `npm run pipeline` once or use a scheduler. LLM calls can incur charges, including for new or changed posts.
 
@@ -182,6 +183,8 @@ Record a walkthrough of the deployed app: search and filter real posts, open an 
 
 - The collector uses unauthenticated ATS job-board APIs (Lever, Greenhouse, Ashby, SmartRecruiters) and Unstop's public API. **Public accessibility and a robots.txt allowance are not permission or a license to collect, store, or redistribute posts.** This repository does not establish that each provider has authorized this use.
 - Before enabling collection, verify and record each provider's current API terms, content license, robots rules, attribution requirements and rate limits, or obtain written permission. Remove sources from `pipeline/sources.config.js` if those requirements cannot be met. This audit has not certified provider permission.
+- Source review (2026-11-20): [Lever](https://github.com/lever/postings-api) describes public postings and third-party scraping, while [Ashby](https://developers.ashbyhq.com/docs/public-job-posting-api) and [SmartRecruiters](https://developers.smartrecruiters.com/docs/posting-api) describe APIs for an organization's own careers pages. [Greenhouse](https://developers.greenhouse.io/) lists a job-board API. These descriptions do not establish third-party redistribution rights for the configured boards.
+- [Unstop's robots.txt](https://unstop.com/robots.txt) allows `/api/public/*` for general crawlers, but that is not a content license. An [Unstop terms page](https://perspect.ai/legal/terms-of-use/) discusses intellectual-property rights; it does not establish permission for this project's collection and redistribution. Confirm the applicable terms and obtain permission where necessary.
 - No HTML scraping, login bypass, or collection from LinkedIn, Naukri, Indeed or Internshala.
 - One run per day, bounded concurrency, retries with backoff and an identifying User-Agent.
 - Only a short snippet is shown; every card links to the original posting.
